@@ -44,8 +44,7 @@ export function TasksPage() {
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        await tasksRepo.saveList(defaultList);
-        storeSetLists([defaultList]);
+        await createList(defaultList);
         setActiveListId(defaultList.id);
       } else {
         storeSetLists(all);
@@ -57,7 +56,7 @@ export function TasksPage() {
       useTasksStore.getState().setTasks(allTasks);
       setInitialized(true);
     })();
-  }, [storeSetLists, activeListId, setActiveListId]);
+  }, [storeSetLists, activeListId, setActiveListId, createList]);
 
   useEffect(() => {
     if (initialized && pendingNewTask) {

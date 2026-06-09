@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { GoPlus, GoKebabHorizontal, GoChevronDown, GoChevronRight } from 'react-icons/go';
 import type { Task, TaskList } from '../../types/task';
 import { TaskCard } from './TaskCard';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { useCompletionTimer } from '../../hooks/useCompletionTimer';
 
 interface DesktopTasksGridProps {
   lists: TaskList[];
@@ -17,6 +19,8 @@ interface DesktopTasksGridProps {
   onRenameList: (listId: string, name: string) => void;
   onDeleteList: (listId: string) => void;
 }
+
+const itemTransition = { duration: 0.25, ease: 'easeInOut' };
 
 export function DesktopTasksGrid({
   lists,
@@ -82,6 +86,7 @@ function TaskListPanel({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const renameRef = useRef<HTMLInputElement>(null);
+  const { completingSet, handleToggle: handleToggleComplete } = useCompletionTimer(onToggleComplete);
 
   const uncompleted = tasks.filter((t) => !t.isCompleted).sort((a, b) => a.order - b.order);
   const completed = tasks.filter((t) => t.isCompleted).sort((a, b) => b.updatedAt - a.updatedAt);
@@ -136,6 +141,11 @@ function TaskListPanel({
             onClick={handleStartRename}
           >
             {list.name}
+            {tasks.length > 0 && (
+              <span className="ml-1.5 text-xs font-normal text-[var(--color-muted)]">
+                {tasks.length + tasks.reduce((s, t) => s + t.subtasks.length, 0)}
+              </span>
+            )}
           </h3>
         )}
         <div className="relative">
@@ -190,48 +200,61 @@ function TaskListPanel({
       )}
 
       <div>
-        {uncompleted.map((task) => (
-          <div key={task.id}>
-            <TaskCard
-              task={task}
-              onToggleComplete={onToggleComplete}
-              onToggleStar={onToggleStar}
-              onOpenDetail={onOpenDetail}
-            />
-            {task.subtasks.length > 0 && (
-              <div className="ml-6 pl-3">
-                {task.subtasks.map((st) => (
-                  <div key={st.id} className="flex items-center gap-3 px-4 py-1.5 group">
-                    <button
-                      onClick={() => onToggleSubtask?.(task.id, st.id)}
-                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                        st.isCompleted
-                          ? 'bg-green-500 border-green-500'
-                          : 'border-[var(--color-border-strong)]'
-                      }`}
-                    >
-                      {st.isCompleted && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => onOpenDetail(task.id)}
-                      className={`flex-1 text-sm min-w-0 truncate text-left ${
-                        st.isCompleted
-                          ? 'line-through text-[var(--color-muted)]'
-                          : 'text-[var(--color-ink)]'
-                      }`}
-                    >
-                      {st.title}
-                    </button>
+        <AnimatePresence>
+          {uncompleted.map((task) => {
+            const completing = completingSet.has(task.id);
+            return (
+              <motion.div
+                key={task.id}
+                layout
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0, overflow: 'hidden' }}
+                transition={itemTransition}
+              >
+                <TaskCard
+                  task={task}
+                  completing={completing}
+                  onToggleComplete={handleToggleComplete}
+                  onToggleStar={onToggleStar}
+                  onOpenDetail={onOpenDetail}
+                />
+                {task.subtasks.length > 0 && (
+                  <div className="ml-6 pl-3">
+                    {task.subtasks.map((st) => (
+                      <div key={st.id} className="flex items-center gap-3 px-4 py-1.5 group">
+                        <button
+                          onClick={() => onToggleSubtask?.(task.id, st.id)}
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            st.isCompleted || completing
+                              ? 'bg-green-500 border-green-500'
+                              : 'border-[var(--color-border-strong)]'
+                          }`}
+                        >
+                          {(st.isCompleted || completing) && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
+                              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => onOpenDetail(task.id)}
+                          className={`flex-1 text-sm min-w-0 truncate text-left ${
+                            st.isCompleted || completing
+                              ? 'line-through text-[var(--color-muted)]'
+                              : 'text-[var(--color-ink)]'
+                          }`}
+                        >
+                          {st.title}
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
       <button
@@ -251,48 +274,57 @@ function TaskListPanel({
             {showCompleted ? <GoChevronDown className="w-3 h-3" /> : <GoChevronRight className="w-3 h-3" />}
             Completed ({completed.length})
           </button>
-          {showCompleted && completed.map((task) => (
-            <div key={task.id}>
-              <TaskCard
-                task={task}
-                onToggleComplete={onToggleComplete}
-                onToggleStar={onToggleStar}
-                onOpenDetail={onOpenDetail}
-              />
-              {task.subtasks.length > 0 && (
-                <div className="ml-6 pl-3">
-                  {task.subtasks.map((st) => (
-                    <div key={st.id} className="flex items-center gap-3 px-4 py-1.5 group">
-                      <button
-                        onClick={() => onToggleSubtask?.(task.id, st.id)}
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                          st.isCompleted
-                            ? 'bg-green-500 border-green-500'
-                            : 'border-[var(--color-border-strong)]'
-                        }`}
-                      >
-                        {st.isCompleted && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => onOpenDetail(task.id)}
-                        className={`flex-1 text-xs min-w-0 truncate text-left ${
-                          st.isCompleted
-                            ? 'line-through text-[var(--color-muted)]'
-                            : 'text-[var(--color-ink)]'
-                        }`}
-                      >
-                        {st.title}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          <AnimatePresence>
+            {showCompleted && completed.map((task) => (
+              <motion.div
+                key={task.id}
+                layout
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0, overflow: 'hidden' }}
+                transition={itemTransition}
+              >
+                <TaskCard
+                  task={task}
+                  onToggleComplete={onToggleComplete}
+                  onToggleStar={onToggleStar}
+                  onOpenDetail={onOpenDetail}
+                />
+                {task.subtasks.length > 0 && (
+                  <div className="ml-6 pl-3">
+                    {task.subtasks.map((st) => (
+                      <div key={st.id} className="flex items-center gap-3 px-4 py-1.5 group">
+                        <button
+                          onClick={() => onToggleSubtask?.(task.id, st.id)}
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            st.isCompleted
+                              ? 'bg-green-500 border-green-500'
+                              : 'border-[var(--color-border-strong)]'
+                          }`}
+                        >
+                          {st.isCompleted && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
+                              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => onOpenDetail(task.id)}
+                          className={`flex-1 text-sm min-w-0 truncate text-left ${
+                            st.isCompleted
+                              ? 'line-through text-[var(--color-muted)]'
+                              : 'text-[var(--color-ink)]'
+                          }`}
+                        >
+                          {st.title}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 

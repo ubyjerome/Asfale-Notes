@@ -7,6 +7,7 @@ import { MenuPage } from '../../pages/MenuPage';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { SyncSubscriber } from '../sync/SyncSubscriber';
+import { TaskSyncSubscriber } from '../sync/TaskSyncSubscriber';
 import { useNavigate } from 'react-router-dom';
 
 export function AppShell() {
@@ -42,6 +43,7 @@ export function AppShell() {
         {renderContent()}
       </main>
       <SyncSubscriber />
+      <TaskSyncSubscriber />
     </>
   );
 }

@@ -116,6 +116,11 @@ export function TasksShell({
         activeListId={activeListId}
         onSelect={lists.length > 1 ? scrollToTab : onSelectList}
         onNewList={onNewList}
+        taskCounts={Object.fromEntries(lists.map((l) => {
+          const listTasks = tasks.filter((t) => t.listId === l.id);
+          const subtaskCount = listTasks.reduce((sum, t) => sum + t.subtasks.length, 0);
+          return [l.id, listTasks.length + subtaskCount];
+        }))}
       />
 
       <div className="flex items-center justify-between px-4 pt-2 pb-1">

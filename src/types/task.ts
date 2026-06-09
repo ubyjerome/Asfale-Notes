@@ -35,6 +35,7 @@ export interface SyncedTaskList {
   encryptedName: string;
   color?: string;
   order: number;
+  isDeleted?: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -47,6 +48,7 @@ export interface SyncedTask {
   encryptedSubtasks: string;
   isCompleted: boolean;
   isStarred: boolean;
+  isDeleted?: boolean;
   dueDate?: number;
   order: number;
   createdAt: number;
