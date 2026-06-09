@@ -9,7 +9,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useAuthStore } from '../../store/authStore';
 import { prefsRepo } from '../../db/prefsRepo';
 import { db } from '../../sync/db';
-import { encrypt, decrypt } from '../../crypto/encrypt';
+import { encrypt } from '../../crypto/encrypt';
 
 type MenuSection = 'main' | 'appearance' | 'privacy' | 'trash' | 'archive' | 'colors';
 
@@ -43,38 +43,19 @@ export function MenuHome({ onClearAllData, onLogout, onRestoreNote, onPermanentD
   const { customColors, removeCustomColor } = usePrefsStore();
   const accountId = useAuthStore((s) => s.accountId);
   const cryptoKey = useAuthStore((s) => s.cryptoKey);
+  const accountLabel = useAuthStore((s) => s.accountLabel);
+  const setAccountLabelStore = useAuthStore((s) => s.setAccountLabel);
   const [copied, setCopied] = useState(false);
-  const [accountLabel, setAccountLabel] = useState('');
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelInput, setLabelInput] = useState('');
 
   useEffect(() => {
-    if (!db || !cryptoKey || !accountId) {
+    if (!accountLabel) {
       prefsRepo.get<string>('accountLabel').then((v) => {
-        if (v) setAccountLabel(v);
+        if (v) setAccountLabelStore(v);
       });
-      return;
     }
-    (async () => {
-      try {
-        const local = await prefsRepo.get<string>('accountLabel');
-        const resp = await (db as any).queryOnce({
-          profile: { $: { where: { accountId } } },
-        });
-        const entries: any[] = resp?.data?.profile ?? [];
-        if (entries.length > 0 && entries[0].encryptedLabel) {
-          const label = await decrypt(entries[0].encryptedLabel, cryptoKey);
-          setAccountLabel(label);
-          if (label !== local) await prefsRepo.set('accountLabel', label);
-        } else if (local) {
-          setAccountLabel(local);
-        }
-      } catch {
-        const local = await prefsRepo.get<string>('accountLabel');
-        if (local) setAccountLabel(local);
-      }
-    })();
-  }, [cryptoKey, accountId]);
+  }, []);
 
   const handleCopyId = () => {
     if (!accountId) return;
@@ -89,21 +70,32 @@ export function MenuHome({ onClearAllData, onLogout, onRestoreNote, onPermanentD
     setEditingLabel(true);
   };
 
-  const handleSaveLabel = () => {
+  function profileEntityId(accountId: string): string {
+    const h = accountId.slice(0, 32);
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
+  }
+
+  const handleSaveLabel = async () => {
     const trimmed = labelInput.trim();
-    setAccountLabel(trimmed);
+    setAccountLabelStore(trimmed);
     setEditingLabel(false);
-    prefsRepo.set('accountLabel', trimmed);
-    if (db && cryptoKey && accountId) {
-      encrypt(trimmed || ' ', cryptoKey).then((encryptedLabel) => {
-        (db as any).transact(
-          (db as any).tx.profile[accountId].update({
-            accountId,
-            encryptedLabel,
-            updatedAt: Date.now(),
-          }),
-        ).catch(() => {});
-      });
+    await prefsRepo.set('accountLabel', trimmed);
+    console.log('[profile] saving label, db:', !!db, 'cryptoKey:', !!cryptoKey, 'accountId:', accountId);
+    if (!db || !cryptoKey || !accountId) return;
+    try {
+      const encryptedLabel = await encrypt(trimmed || ' ', cryptoKey);
+      const id = profileEntityId(accountId);
+      console.log('[profile] pushing with entity id:', id);
+      await (db as any).transact(
+        (db as any).tx.profile[id].update({
+          accountId,
+          encryptedLabel,
+          updatedAt: Date.now(),
+        }),
+      );
+      console.log('[profile] push succeeded');
+    } catch (e: any) {
+      console.error('[profile] push failed', e);
     }
   };
 
@@ -188,17 +180,7 @@ export function MenuHome({ onClearAllData, onLogout, onRestoreNote, onPermanentD
           <button onClick={() => navigate('trash')} className="w-full flex items-center gap-3 px-4 py-3 rounded-radius-lg text-sm text-[var(--color-body)] hover:bg-[var(--color-surface-soft)]">
             <GoTrash className="w-5 h-5 text-[var(--color-muted)]" /> Trash
           </button>
-          <button onClick={() => navigate('archive')} className="w-full flex items-center gap-3 px-4 py-3 rounded-radius-lg text-sm text-[var(--color-body)] hover:bg-[var(--color-surface-soft)]">
-            <GoArchive className="w-5 h-5 text-[var(--color-muted)]" /> Archive
-          </button>
-        </div>
-      );
-    }
-
-    const content = (() => {
-      switch (s) {
-        case 'appearance':
-          return <AppearanceSettings />;
+          <button onClick={() => navigate('archive')} className="w-full flex items-center gap-3 px-4 py-3 rounded-radius-lg text-sm text-[var(--color-     return <AppearanceSettings />;
         case 'privacy':
           return <PrivacySettings onClearAllData={onClearAllData} onLogout={onLogout} />;
         case 'trash':

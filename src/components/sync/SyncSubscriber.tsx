@@ -17,15 +17,18 @@ export function SyncSubscriber() {
 
   const query =
     migrated && accountId
-      ? ({ notes: { $: { where: { accountId } } } } as any)
-      : ({ notes: {} } as any);
+      ? ({ notes: { $: { where: { accountId } } }, profile: { $: { where: { accountId } } } } as any)
+      : ({ notes: {}, profile: {} } as any);
 
   const { data } = !db
     ? { data: undefined }
     : (db.useQuery as any)(query) ?? { data: undefined };
 
+  console.log('[sync] query mode:', migrated && accountId ? 'filtered' : 'unfiltered', 'migrated:', migrated, 'accountId present:', !!accountId);
+
   useEffect(() => {
     prefsRepo.get<boolean>('notesAccountIdMigrated').then((done) => {
+      console.log('[sync] migration flag from prefsRepo:', done);
       if (done) setMigrated(true);
     });
   }, []);
@@ -52,6 +55,20 @@ export function SyncSubscriber() {
         }
       }
 
+      const syncedProfiles: any[] = data.profile ?? [];
+      for (const synced of syncedProfiles) {
+        if (!synced?.id || !synced?.encryptedLabel) continue;
+        if (synced.accountId === accountId) continue;
+        try {
+          await decrypt(synced.encryptedLabel, cryptoKey);
+          await (db as any).transact(
+            (db as any).tx.profile[synced.id].update({ accountId }),
+          );
+        } catch {
+          // not our record
+        }
+      }
+
       await prefsRepo.set('notesAccountIdMigrated', true);
       setMigrated(true);
     };
@@ -65,6 +82,8 @@ export function SyncSubscriber() {
     const raw = JSON.stringify(data);
     if (raw === prevDataRef.current) return;
     prevDataRef.current = raw;
+
+    console.log('[sync] data effect fired, has profile:', 'profile' in data, 'profile entries:', data.profile?.length ?? 'N/A', 'migrated:', migrated, 'accountId:', accountId?.slice(0, 8));
 
     const syncedNotes: any[] = Array.isArray(data) ? data : data.notes ?? [];
 
@@ -87,26 +106,27 @@ export function SyncSubscriber() {
             isArchived: synced.isArchived ?? false,
             isDeleted: synced.isDeleted ?? false,
             deletedAt: synced.deletedAt,
-            createdAt: synced.createdAt,
-            updatedAt: synced.updatedAt,
-          };
-
-          await notesRepo.save(note);
-
-          const { notes, setNotes } = useNotesStore.getState();
-          const exists = notes.find((n) => n.id === note.id);
-          setNotes(
-            exists
-              ? notes.map((n) => (n.id === note.id ? note : n))
-              : [note, ...notes],
-          );
-        } catch {
-          // skip unprocessable notes
+            createdAt: sy          // skip unprocessable notes
         }
       }
     };
 
     processNotes();
+
+    (async () => {
+      const syncedProfiles: any[] = data.profile ?? [];
+      for (const synced of syncedProfiles) {
+        if (!synced?.id || !synced?.encryptedLabel) continue;
+        try {
+          const label = await decrypt(synced.encryptedLabel, cryptoKey);
+          const { accountLabel, setAccountLabel } = useAuthStore.getState();
+          if (label !== accountLabel) {
+            setAccountLabel(label);
+            await prefsRepo.set('accountLabel', label);
+          }
+        } catch { /* skip */ }
+      }
+    })();
   }, [data, cryptoKey, isAuthenticated]);
 
   return null;
