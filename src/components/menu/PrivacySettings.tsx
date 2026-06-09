@@ -90,7 +90,7 @@ export function PrivacySettings({ onClearAllData, onLogout }: PrivacySettingsPro
     <div className="p-4 space-y-4">
       <button
         onClick={handleViewMnemonic}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg border border-[var(--color-hairline)] hover:bg-[var(--color-surface-soft)]"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg hover:bg-[var(--color-surface-soft)]"
       >
         <div className="flex items-center gap-3">
           <GoEye className="w-5 h-5 text-[var(--color-muted)]" />
@@ -100,7 +100,7 @@ export function PrivacySettings({ onClearAllData, onLogout }: PrivacySettingsPro
 
       <button
         onClick={() => setShowSetPin(true)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg border border-[var(--color-hairline)] hover:bg-[var(--color-surface-soft)]"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg hover:bg-[var(--color-surface-soft)]"
       >
         <div className="flex items-center gap-3">
           <GoKey className="w-5 h-5 text-[var(--color-muted)]" />
@@ -110,7 +110,7 @@ export function PrivacySettings({ onClearAllData, onLogout }: PrivacySettingsPro
 
       <button
         onClick={() => setShowLogoutConfirm(true)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg border border-[var(--color-hairline)] hover:bg-[var(--color-surface-soft)]"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg hover:bg-[var(--color-surface-soft)]"
       >
         <div className="flex items-center gap-3">
           <GoSignOut className="w-5 h-5 text-[var(--color-muted)]" />
@@ -120,7 +120,7 @@ export function PrivacySettings({ onClearAllData, onLogout }: PrivacySettingsPro
 
       <button
         onClick={() => setShowClearConfirm(true)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg border border-[var(--color-hairline)] hover:bg-red-50 dark:hover:bg-red-900/20"
+        className="w-full flex items-center justify-between px-4 py-3 rounded-radius-lg hover:bg-red-50 dark:hover:bg-red-900/20"
       >
         <div className="flex items-center gap-3">
           <GoAlert className="w-5 h-5 text-red-500" />
