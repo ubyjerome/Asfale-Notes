@@ -8,6 +8,8 @@ import { usePrefsStore } from '../../store/prefsStore';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useAuthStore } from '../../store/authStore';
 import { prefsRepo } from '../../db/prefsRepo';
+import { db } from '../../sync/db';
+import { encrypt, decrypt } from '../../crypto/encrypt';
 
 type MenuSection = 'main' | 'appearance' | 'privacy' | 'trash' | 'archive' | 'colors';
 
@@ -40,16 +42,39 @@ export function MenuHome({ onClearAllData, onLogout, onRestoreNote, onPermanentD
   const isMobile = useMediaQuery('(max-width: 767px)');
   const { customColors, removeCustomColor } = usePrefsStore();
   const accountId = useAuthStore((s) => s.accountId);
+  const cryptoKey = useAuthStore((s) => s.cryptoKey);
   const [copied, setCopied] = useState(false);
   const [accountLabel, setAccountLabel] = useState('');
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelInput, setLabelInput] = useState('');
 
   useEffect(() => {
-    prefsRepo.get<string>('accountLabel').then((v) => {
-      if (v) setAccountLabel(v);
-    });
-  }, []);
+    if (!db || !cryptoKey || !accountId) {
+      prefsRepo.get<string>('accountLabel').then((v) => {
+        if (v) setAccountLabel(v);
+      });
+      return;
+    }
+    (async () => {
+      try {
+        const local = await prefsRepo.get<string>('accountLabel');
+        const resp = await (db as any).queryOnce({
+          profile: { $: { where: { accountId } } },
+        });
+        const entries: any[] = resp?.data?.profile ?? [];
+        if (entries.length > 0 && entries[0].encryptedLabel) {
+          const label = await decrypt(entries[0].encryptedLabel, cryptoKey);
+          setAccountLabel(label);
+          if (label !== local) await prefsRepo.set('accountLabel', label);
+        } else if (local) {
+          setAccountLabel(local);
+        }
+      } catch {
+        const local = await prefsRepo.get<string>('accountLabel');
+        if (local) setAccountLabel(local);
+      }
+    })();
+  }, [cryptoKey, accountId]);
 
   const handleCopyId = () => {
     if (!accountId) return;
@@ -69,6 +94,17 @@ export function MenuHome({ onClearAllData, onLogout, onRestoreNote, onPermanentD
     setAccountLabel(trimmed);
     setEditingLabel(false);
     prefsRepo.set('accountLabel', trimmed);
+    if (db && cryptoKey && accountId) {
+      encrypt(trimmed || ' ', cryptoKey).then((encryptedLabel) => {
+        (db as any).transact(
+          (db as any).tx.profile[accountId].update({
+            accountId,
+            encryptedLabel,
+            updatedAt: Date.now(),
+          }),
+        ).catch(() => {});
+      });
+    }
   };
 
   const navigate = useCallback((next: MenuSection) => {
