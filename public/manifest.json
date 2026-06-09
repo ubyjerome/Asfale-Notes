@@ -1,0 +1,12 @@
+{
+  "name": "Asfale Notes",
+  "short_name": "Asfale",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1c1e",
+  "theme_color": "#1c1c1e",
+  "icons": [
+    { "src": "/icon-192-white.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512-white.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
