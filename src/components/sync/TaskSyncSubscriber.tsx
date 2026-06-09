@@ -1,19 +1,80 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { db } from '../../sync/db';
 import { useAuthStore } from '../../store/authStore';
 import { useTasksStore } from '../../store/tasksStore';
 import { decrypt } from '../../crypto/encrypt';
 import { tasksRepo } from '../../db/tasksRepo';
+import { prefsRepo } from '../../db/prefsRepo';
 import type { Task, TaskList, Subtask } from '../../types/task';
 
 export function TaskSyncSubscriber() {
   const cryptoKey = useAuthStore((s) => s.cryptoKey);
+  const accountId = useAuthStore((s) => s.accountId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [migrated, setMigrated] = useState(false);
+  const migratingRef = useRef(false);
   const prevDataRef = useRef<string>('');
+
+  const query =
+    migrated && accountId
+      ? ({
+          tasks: { $: { where: { accountId } } },
+          taskLists: { $: { where: { accountId } } },
+        } as any)
+      : ({ tasks: {}, taskLists: {} } as any);
 
   const { data } = !db
     ? { data: undefined }
-    : (db.useQuery as any)({ tasks: {}, taskLists: {} }) ?? { data: undefined };
+    : (db.useQuery as any)(query) ?? { data: undefined };
+
+  useEffect(() => {
+    prefsRepo.get<boolean>('accountIdMigrated').then((done) => {
+      if (done) setMigrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !cryptoKey || !accountId || migratingRef.current || migrated) return;
+    if (!data) return;
+
+    migratingRef.current = true;
+
+    const migrate = async () => {
+      const syncedTasks: any[] = data.tasks ?? [];
+      const syncedLists: any[] = data.taskLists ?? [];
+
+      for (const synced of syncedLists) {
+        if (!synced?.id || !synced?.encryptedName) continue;
+        if (synced.accountId === accountId) continue;
+        try {
+          await decrypt(synced.encryptedName, cryptoKey);
+          await (db as any).transact(
+            (db as any).tx.taskLists[synced.id].update({ accountId }),
+          );
+        } catch {
+          // not our record
+        }
+      }
+
+      for (const synced of syncedTasks) {
+        if (!synced?.id || !synced?.encryptedTitle) continue;
+        if (synced.accountId === accountId) continue;
+        try {
+          await decrypt(synced.encryptedTitle, cryptoKey);
+          await (db as any).transact(
+            (db as any).tx.tasks[synced.id].update({ accountId }),
+          );
+        } catch {
+          // not our record
+        }
+      }
+
+      await prefsRepo.set('accountIdMigrated', true);
+      setMigrated(true);
+    };
+
+    migrate();
+  }, [data, cryptoKey, isAuthenticated, migrated, accountId]);
 
   useEffect(() => {
     if (!isAuthenticated || !cryptoKey || !data) return;

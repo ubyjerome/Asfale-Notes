@@ -25,6 +25,12 @@ export async function exportCryptoKey(key: CryptoKey): Promise<JsonWebKey> {
   return crypto.subtle.exportKey('jwk', key);
 }
 
+export async function deriveAccountId(mnemonic: string): Promise<string> {
+  const encoded = new TextEncoder().encode(mnemonic.normalize('NFKD'));
+  const hash = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export async function importCryptoKey(jwk: JsonWebKey): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     'jwk',

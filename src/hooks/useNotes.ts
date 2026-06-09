@@ -11,6 +11,7 @@ export function useNotes() {
   const notes = useNotesStore((s) => s.notes);
   const setNotes = useNotesStore((s) => s.setNotes);
   const cryptoKey = useAuthStore((s) => s.cryptoKey);
+  const accountId = useAuthStore((s) => s.accountId);
 
   const loadNotes = useCallback(async () => {
     const all = await notesRepo.getAll();
@@ -49,6 +50,7 @@ export function useNotes() {
             const { title, content, ...meta } = updated;
             const synced: SyncedNote = {
               ...meta,
+              accountId: accountId!,
               encryptedTitle: await encrypt(updated.title, cryptoKey),
               encryptedContent: await encrypt(updated.content, cryptoKey),
             };
@@ -57,7 +59,7 @@ export function useNotes() {
         }
       }
     },
-    [notes, setNotes, cryptoKey],
+    [notes, setNotes, cryptoKey, accountId],
   );
 
   const permanentlyDeleteNote = useCallback(
@@ -85,6 +87,7 @@ export function useNotes() {
             const { title, content, ...meta } = updated;
             const synced: SyncedNote = {
               ...meta,
+              accountId: accountId!,
               encryptedTitle: await encrypt(updated.title, cryptoKey),
               encryptedContent: await encrypt(updated.content, cryptoKey),
             };
@@ -93,7 +96,7 @@ export function useNotes() {
         }
       }
     },
-    [notes, setNotes, cryptoKey],
+    [notes, setNotes, cryptoKey, accountId],
   );
 
   const restoreNote = useCallback(
@@ -108,6 +111,7 @@ export function useNotes() {
             const { title, content, ...meta } = updated;
             const synced: SyncedNote = {
               ...meta,
+              accountId: accountId!,
               encryptedTitle: await encrypt(updated.title, cryptoKey),
               encryptedContent: await encrypt(updated.content, cryptoKey),
             };
@@ -116,7 +120,7 @@ export function useNotes() {
         }
       }
     },
-    [notes, setNotes, cryptoKey],
+    [notes, setNotes, cryptoKey, accountId],
   );
 
   const duplicateNote = useCallback(
@@ -150,6 +154,7 @@ export function useNotes() {
             const { title, content, ...meta } = updated;
             const synced: SyncedNote = {
               ...meta,
+              accountId: accountId!,
               encryptedTitle: await encrypt(updated.title, cryptoKey),
               encryptedContent: await encrypt(updated.content, cryptoKey),
             };
@@ -160,7 +165,7 @@ export function useNotes() {
       }
       setNotes(notes.filter((n) => !ids.includes(n.id)));
     },
-    [notes, setNotes, cryptoKey],
+    [notes, setNotes, cryptoKey, accountId],
   );
 
   const bulkArchive = useCallback(
@@ -175,6 +180,7 @@ export function useNotes() {
               const { title, content, ...meta } = updated;
               const synced: SyncedNote = {
                 ...meta,
+                accountId: accountId!,
                 encryptedTitle: await encrypt(updated.title, cryptoKey),
                 encryptedContent: await encrypt(updated.content, cryptoKey),
               };
@@ -185,7 +191,7 @@ export function useNotes() {
       }
       setNotes(notes.filter((n) => !ids.includes(n.id)));
     },
-    [notes, setNotes, cryptoKey],
+    [notes, setNotes, cryptoKey, accountId],
   );
 
   const bulkAssignColor = useCallback(

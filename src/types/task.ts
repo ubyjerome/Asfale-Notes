@@ -32,6 +32,7 @@ export interface Task {
 
 export interface SyncedTaskList {
   id: string;
+  accountId: string;
   encryptedName: string;
   color?: string;
   order: number;
@@ -42,6 +43,7 @@ export interface SyncedTaskList {
 
 export interface SyncedTask {
   id: string;
+  accountId: string;
   listId: string;
   encryptedTitle: string;
   encryptedDescription?: string;

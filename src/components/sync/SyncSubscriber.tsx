@@ -1,17 +1,63 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { db } from '../../sync/db';
 import { useAuthStore } from '../../store/authStore';
 import { useNotesStore } from '../../store/notesStore';
 import { decrypt } from '../../crypto/encrypt';
 import { notesRepo } from '../../db/notesRepo';
+import { prefsRepo } from '../../db/prefsRepo';
 import type { Note } from '../../types/note';
 
 export function SyncSubscriber() {
   const cryptoKey = useAuthStore((s) => s.cryptoKey);
+  const accountId = useAuthStore((s) => s.accountId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [migrated, setMigrated] = useState(false);
+  const migratingRef = useRef(false);
   const prevDataRef = useRef<string>('');
 
-  const { data } = !db ? { data: undefined } : (db.useQuery as any)({ notes: {} }) ?? { data: undefined };
+  const query =
+    migrated && accountId
+      ? ({ notes: { $: { where: { accountId } } } } as any)
+      : ({ notes: {} } as any);
+
+  const { data } = !db
+    ? { data: undefined }
+    : (db.useQuery as any)(query) ?? { data: undefined };
+
+  useEffect(() => {
+    prefsRepo.get<boolean>('notesAccountIdMigrated').then((done) => {
+      if (done) setMigrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !cryptoKey || !accountId || migratingRef.current || migrated) return;
+    if (!data) return;
+
+    migratingRef.current = true;
+
+    const migrate = async () => {
+      const syncedNotes: any[] = Array.isArray(data) ? data : data.notes ?? [];
+
+      for (const synced of syncedNotes) {
+        if (!synced?.id || !synced?.encryptedTitle || !synced?.encryptedContent) continue;
+        if (synced.accountId === accountId) continue;
+        try {
+          await decrypt(synced.encryptedTitle, cryptoKey);
+          await (db as any).transact(
+            (db as any).tx.notes[synced.id].update({ accountId }),
+          );
+        } catch {
+          // not our record
+        }
+      }
+
+      await prefsRepo.set('notesAccountIdMigrated', true);
+      setMigrated(true);
+    };
+
+    migrate();
+  }, [data, cryptoKey, isAuthenticated, migrated, accountId]);
 
   useEffect(() => {
     if (!isAuthenticated || !cryptoKey || !data) return;

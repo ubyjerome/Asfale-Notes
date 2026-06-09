@@ -1,5 +1,6 @@
 export interface SyncedNote {
   id: string;
+  accountId: string;
   encryptedTitle: string;
   encryptedContent: string;
   color: string;

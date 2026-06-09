@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { prefsRepo } from '../db/prefsRepo';
 import { notesRepo } from '../db/notesRepo';
-import { importCryptoKey, deriveKeyFromMnemonic, exportCryptoKey } from '../crypto/keygen';
+import { importCryptoKey, deriveKeyFromMnemonic, exportCryptoKey, deriveAccountId } from '../crypto/keygen';
 
 interface AuthGateProps {
   children: ReactNode;
@@ -12,7 +12,7 @@ interface AuthGateProps {
 
 export function AuthGate({ children }: AuthGateProps) {
   const navigate = useNavigate();
-  const { isAuthenticated, setCryptoKey, setIsAuthenticated } = useAuthStore();
+  const { isAuthenticated, setCryptoKey, setAccountId, setIsAuthenticated } = useAuthStore();
   const [checking, setChecking] = useState(true);
   const [showMnemonicEntry, setShowMnemonicEntry] = useState(false);
   const [mnemonicInput, setMnemonicInput] = useState('');
@@ -36,6 +36,8 @@ export function AuthGate({ children }: AuthGateProps) {
             return;
           }
           setCryptoKey(key);
+          const accId = await deriveAccountId(storedMnemonic);
+          setAccountId(accId);
           setIsAuthenticated(true);
           setChecking(false);
           return;
@@ -63,6 +65,8 @@ export function AuthGate({ children }: AuthGateProps) {
       const jwk = await exportCryptoKey(key);
       await prefsRepo.set('cryptoKeyJwk', jwk);
       await prefsRepo.set('mnemonic', phrase);
+      const accId = await deriveAccountId(phrase);
+      setAccountId(accId);
       setCryptoKey(key);
       setIsAuthenticated(true);
       setShowMnemonicEntry(false);

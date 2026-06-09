@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { usePrefsStore } from '../store/prefsStore';
-import { generateMnemonic, validateMnemonic, deriveKeyFromMnemonic, exportCryptoKey } from '../crypto/keygen';
+import { generateMnemonic, validateMnemonic, deriveKeyFromMnemonic, exportCryptoKey, deriveAccountId } from '../crypto/keygen';
 import { prefsRepo } from '../db/prefsRepo';
 
 export function useCrypto() {
-  const { setMnemonic, setCryptoKey, setIsAuthenticated } = useAuthStore();
+  const { setMnemonic, setCryptoKey, setAccountId, setIsAuthenticated } = useAuthStore();
 
   const createNewIdentity = useCallback(async () => {
     const mnemonic = await generateMnemonic();
@@ -37,6 +37,8 @@ export function useCrypto() {
       const jwk = await exportCryptoKey(key);
       await prefsRepo.set('cryptoKeyJwk', jwk);
       setMnemonic(null);
+      const accId = await deriveAccountId(mnemonic);
+      setAccountId(accId);
       setCryptoKey(key);
       setIsAuthenticated(true);
     },

@@ -6,13 +6,15 @@ import type { SyncedNote } from '../types/sync';
 
 export function useSync() {
   const cryptoKey = useAuthStore((s) => s.cryptoKey);
+  const accountId = useAuthStore((s) => s.accountId);
 
   const pushNote = async (note: Note) => {
-    if (!cryptoKey || !db) return;
+    if (!cryptoKey || !db || !accountId) return;
 
     try {
       const synced: SyncedNote = {
         id: note.id,
+        accountId,
         encryptedTitle: await encrypt(note.title, cryptoKey),
         encryptedContent: await encrypt(note.content, cryptoKey),
         color: note.color,

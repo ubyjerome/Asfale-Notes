@@ -14,6 +14,7 @@ export function useTasks() {
   const activeListId = useTasksStore((s) => s.activeListId);
   const setActiveListId = useTasksStore((s) => s.setActiveListId);
   const cryptoKey = useAuthStore((s) => s.cryptoKey);
+  const accountId = useAuthStore((s) => s.accountId);
 
   const loadLists = useCallback(async () => {
     const all = await tasksRepo.getAllLists();
@@ -35,6 +36,7 @@ export function useTasks() {
         try {
           const synced: SyncedTaskList = {
             id: list.id,
+            accountId: accountId!,
             encryptedName: await encrypt(list.name, cryptoKey),
             color: list.color,
             order: list.order,
@@ -47,7 +49,7 @@ export function useTasks() {
       }
       return list;
     },
-    [lists, setLists, cryptoKey],
+    [lists, setLists, cryptoKey, accountId],
   );
 
   const updateList = useCallback(
@@ -58,6 +60,7 @@ export function useTasks() {
         try {
           const synced: SyncedTaskList = {
             id: list.id,
+            accountId: accountId!,
             encryptedName: await encrypt(list.name, cryptoKey),
             color: list.color,
             order: list.order,
@@ -69,7 +72,7 @@ export function useTasks() {
         } catch { /* best-effort */ }
       }
     },
-    [lists, setLists, cryptoKey],
+    [lists, setLists, cryptoKey, accountId],
   );
 
   const deleteList = useCallback(
@@ -91,6 +94,7 @@ export function useTasks() {
         try {
           const synced: SyncedTaskList = {
             id: deletedList.id,
+            accountId: accountId!,
             encryptedName: await encrypt(deletedList.name, cryptoKey),
             color: deletedList.color,
             order: deletedList.order,
@@ -102,6 +106,7 @@ export function useTasks() {
           for (const t of deletedTasks) {
             const syncedTask: SyncedTask = {
               id: t.id,
+              accountId: accountId!,
               listId: t.listId,
               encryptedTitle: await encrypt(t.title, cryptoKey),
               encryptedDescription: t.description ? await encrypt(t.description, cryptoKey) : undefined,
@@ -119,7 +124,7 @@ export function useTasks() {
         } catch { /* best-effort */ }
       }
     },
-    [lists, tasks, setLists, setTasks, cryptoKey],
+    [lists, tasks, setLists, setTasks, cryptoKey, accountId],
   );
 
   const createTask = useCallback(
@@ -130,6 +135,7 @@ export function useTasks() {
         try {
           const synced: SyncedTask = {
             id: task.id,
+            accountId: accountId!,
             listId: task.listId,
             encryptedTitle: await encrypt(task.title, cryptoKey),
             encryptedDescription: task.description ? await encrypt(task.description, cryptoKey) : undefined,
@@ -146,7 +152,7 @@ export function useTasks() {
         } catch { /* best-effort */ }
       }
     },
-    [tasks, setTasks, cryptoKey],
+    [tasks, setTasks, cryptoKey, accountId],
   );
 
   const updateTask = useCallback(
@@ -157,6 +163,7 @@ export function useTasks() {
         try {
           const synced: SyncedTask = {
             id: task.id,
+            accountId: accountId!,
             listId: task.listId,
             encryptedTitle: await encrypt(task.title, cryptoKey),
             encryptedDescription: task.description ? await encrypt(task.description, cryptoKey) : undefined,
@@ -173,7 +180,7 @@ export function useTasks() {
         } catch { /* best-effort */ }
       }
     },
-    [tasks, setTasks, cryptoKey],
+    [tasks, setTasks, cryptoKey, accountId],
   );
 
   const deleteTask = useCallback(
@@ -187,6 +194,7 @@ export function useTasks() {
         try {
           const synced: SyncedTask = {
             id: updated.id,
+            accountId: accountId!,
             listId: updated.listId,
             encryptedTitle: await encrypt(updated.title, cryptoKey),
             encryptedDescription: updated.description ? await encrypt(updated.description, cryptoKey) : undefined,
@@ -203,7 +211,7 @@ export function useTasks() {
         } catch { /* best-effort */ }
       }
     },
-    [tasks, setTasks, cryptoKey],
+    [tasks, setTasks, cryptoKey, accountId],
   );
 
   const toggleTaskComplete = useCallback(
@@ -225,6 +233,7 @@ export function useTasks() {
         try {
           const synced: SyncedTask = {
             id: updated.id,
+            accountId: accountId!,
             listId: updated.listId,
             encryptedTitle: await encrypt(updated.title, cryptoKey),
             encryptedDescription: updated.description ? await encrypt(updated.description, cryptoKey) : undefined,
@@ -241,7 +250,7 @@ export function useTasks() {
         } catch (e) { console.error('[sync] toggleTaskComplete push failed', e); }
       }
     },
-    [tasks, setTasks, cryptoKey],
+    [tasks, setTasks, cryptoKey, accountId],
   );
 
   const toggleTaskStar = useCallback(
@@ -255,6 +264,7 @@ export function useTasks() {
         try {
           const synced: SyncedTask = {
             id: updated.id,
+            accountId: accountId!,
             listId: updated.listId,
             encryptedTitle: await encrypt(updated.title, cryptoKey),
             encryptedDescription: updated.description ? await encrypt(updated.description, cryptoKey) : undefined,
@@ -271,7 +281,7 @@ export function useTasks() {
         } catch { /* best-effort */ }
       }
     },
-    [tasks, setTasks, cryptoKey],
+    [tasks, setTasks, cryptoKey, accountId],
   );
 
   const reorderTasks = useCallback(
@@ -292,6 +302,7 @@ export function useTasks() {
           try {
             const synced: SyncedTask = {
               id: u.id,
+              accountId: accountId!,
               listId: u.listId,
               encryptedTitle: await encrypt(u.title, cryptoKey),
               encryptedDescription: u.description ? await encrypt(u.description, cryptoKey) : undefined,
@@ -309,7 +320,7 @@ export function useTasks() {
         }
       }
     },
-    [tasks, setTasks, cryptoKey],
+    [tasks, setTasks, cryptoKey, accountId],
   );
 
   return {
