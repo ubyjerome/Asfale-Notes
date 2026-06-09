@@ -22,9 +22,9 @@ export function MnemonicImport({ onImport, validate }: MnemonicImportProps) {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-xl font-medium text-[var(--color-ink)] mb-2">Import Existing Account</h2>
+        <h2 className="text-xl font-medium text-[var(--color-ink)] mb-2">Import Recovery Phrase</h2>
         <p className="text-sm text-[var(--color-body)]">
-          Paste or type your 12 or 24 word recovery phrase.
+          Paste your 12-word recovery phrase below.
         </p>
       </div>
 
@@ -34,7 +34,7 @@ export function MnemonicImport({ onImport, validate }: MnemonicImportProps) {
           setInput(e.target.value);
           setError(false);
         }}
-        placeholder="Enter your recovery phrase..."
+        placeholder="Paste your recovery phrase..."
         rows={4}
         className={`w-full p-4 text-sm bg-[var(--color-canvas)] border rounded-radius-lg resize-none text-[var(--color-ink)] placeholder:text-[var(--color-muted)] ${
           error ? 'border-red-500' : 'border-[var(--color-hairline)]'

@@ -106,7 +106,21 @@ export function SyncSubscriber() {
             isArchived: synced.isArchived ?? false,
             isDeleted: synced.isDeleted ?? false,
             deletedAt: synced.deletedAt,
-            createdAt: sy          // skip unprocessable notes
+            createdAt: synced.createdAt,
+            updatedAt: synced.updatedAt,
+          };
+
+          await notesRepo.save(note);
+
+          const { notes, setNotes } = useNotesStore.getState();
+          const exists = notes.find((n) => n.id === note.id);
+          setNotes(
+            exists
+              ? notes.map((n) => (n.id === note.id ? note : n))
+              : [note, ...notes],
+          );
+        } catch {
+          // skip unprocessable notes
         }
       }
     };

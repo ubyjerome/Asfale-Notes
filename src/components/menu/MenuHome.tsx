@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
-import { GoSun, GoEye, GoTrash, GoArchive, GoPencil, GoX, GoArrowLeft, GoCopy, GoCheck } from 'react-icons/go';
+import { GoSun, GoEye, GoTrash, GoArchive, GoPencil, GoX, GoArrowLeft, GoCopy, GoCheck, GoDeviceDesktop } from 'react-icons/go';
 import { AppearanceSettings } from './AppearanceSettings';
 import { PrivacySettings } from './PrivacySettings';
 import { TrashView } from './TrashView';
 import { ArchiveView } from './ArchiveView';
+import { LinkDeviceView } from './LinkDeviceView';
 import { usePrefsStore } from '../../store/prefsStore';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useAuthStore } from '../../store/authStore';
@@ -11,7 +12,7 @@ import { prefsRepo } from '../../db/prefsRepo';
 import { db } from '../../sync/db';
 import { encrypt } from '../../crypto/encrypt';
 
-type MenuSection = 'main' | 'appearance' | 'privacy' | 'trash' | 'archive' | 'colors';
+type MenuSection = 'main' | 'appearance' | 'privacy' | 'trash' | 'archive' | 'colors' | 'link-device';
 
 interface MenuHomeProps {
   onClearAllData: () => void;
@@ -180,13 +181,28 @@ export function MenuHome({ onClearAllData, onLogout, onRestoreNote, onPermanentD
           <button onClick={() => navigate('trash')} className="w-full flex items-center gap-3 px-4 py-3 rounded-radius-lg text-sm text-[var(--color-body)] hover:bg-[var(--color-surface-soft)]">
             <GoTrash className="w-5 h-5 text-[var(--color-muted)]" /> Trash
           </button>
-          <button onClick={() => navigate('archive')} className="w-full flex items-center gap-3 px-4 py-3 rounded-radius-lg text-sm text-[var(--color-     return <AppearanceSettings />;
+          <button onClick={() => navigate('archive')} className="w-full flex items-center gap-3 px-4 py-3 rounded-radius-lg text-sm text-[var(--color-body)] hover:bg-[var(--color-surface-soft)]">
+            <GoArchive className="w-5 h-5 text-[var(--color-muted)]" /> Archive
+          </button>
+          <button onClick={() => navigate('link-device')} className="w-full flex items-center gap-3 px-4 py-3 rounded-radius-lg text-sm text-[var(--color-body)] hover:bg-[var(--color-surface-soft)]">
+            <GoDeviceDesktop className="w-5 h-5 text-[var(--color-muted)]" /> Link a device
+          </button>
+        </div>
+      );
+    }
+
+    const content = (() => {
+      switch (s) {
+        case 'appearance':
+          return <AppearanceSettings />;
         case 'privacy':
           return <PrivacySettings onClearAllData={onClearAllData} onLogout={onLogout} />;
         case 'trash':
           return <TrashView onRestore={onRestoreNote} onPermanentDelete={onPermanentDelete} />;
         case 'archive':
           return <ArchiveView onRestore={onRestoreNote} onSelect={onArchiveSelect} />;
+        case 'link-device':
+          return <LinkDeviceView />;
         case 'colors':
           return (
             <div className="p-4 space-y-3">

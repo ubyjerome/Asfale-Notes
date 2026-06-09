@@ -2,11 +2,13 @@ import { useState } from 'react';
 
 import { MnemonicDisplay } from './MnemonicDisplay';
 import { MnemonicImport } from './MnemonicImport';
+import { ImportMethodPicker } from './ImportMethodPicker';
+import { QRScannerView } from './QRScannerView';
 import { PinSetup } from './PinSetup';
 import { useCrypto } from '../../hooks/useCrypto';
 import { Toast } from '../ui/Toast';
 
-type Step = 'welcome' | 'create' | 'import' | 'pin' | 'done';
+type Step = 'welcome' | 'create' | 'import-pick' | 'import-scan' | 'import-paste' | 'pin' | 'done';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -38,7 +40,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const handleImport = () => {
-    goTo('import');
+    goTo('import-pick');
   };
 
   const handleImportConfirm = async (phrase: string) => {
@@ -112,7 +114,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   onClick={handleImport}
                   className="w-full h-12 text-sm font-medium text-[var(--color-ink)] bg-[var(--color-canvas)] border border-[var(--color-hairline)] rounded-radius-lg"
                 >
-                  Import existing account
+                  Add existing account
                 </button>
               </div>
             </div>
@@ -134,14 +136,30 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
           </div>
         );
-      case 'import':
+      case 'import-pick':
+        return (
+          <ImportMethodPicker
+            onScan={() => goTo('import-scan')}
+            onPaste={() => goTo('import-paste')}
+            onBack={() => setStep('welcome')}
+          />
+        );
+      case 'import-scan':
+        return (
+          <QRScannerView
+            onScan={handleImportConfirm}
+            onBack={() => setStep('import-pick')}
+            validate={validateMnemonic}
+          />
+        );
+      case 'import-paste':
         return (
           <div className="flex items-center justify-center px-6 py-12">
             <div className="w-full max-w-md space-y-3">
               <MnemonicImport onImport={handleImportConfirm} validate={validateMnemonic} />
               <div className="px-6">
                 <button
-                  onClick={() => setStep('welcome')}
+                  onClick={() => setStep('import-pick')}
                   className="w-full h-12 text-sm font-medium text-[var(--color-ink)] bg-[var(--color-canvas)] border border-[var(--color-hairline)] rounded-radius-lg"
                 >
                   Back

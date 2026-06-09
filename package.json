@@ -19,7 +19,9 @@
     "dexie": "^4.4.3",
     "framer-motion": "^12.40.0",
     "fuse.js": "^7.4.2",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.344.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.6.0",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "@rollup/plugin-inject": "^5.0.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
