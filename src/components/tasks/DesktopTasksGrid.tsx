@@ -218,7 +218,7 @@ function TaskListPanel({
                     </button>
                     <button
                       onClick={() => onOpenDetail(task.id)}
-                      className={`flex-1 text-xs min-w-0 truncate text-left ${
+                      className={`flex-1 text-sm min-w-0 truncate text-left ${
                         st.isCompleted
                           ? 'line-through text-[var(--color-muted)]'
                           : 'text-[var(--color-ink)]'

@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import type { TaskList } from '../../types/task';
 
@@ -9,16 +10,44 @@ interface TaskListTabsProps {
 }
 
 export function TaskListTabs({ lists, activeListId, onSelect, onNewList }: TaskListTabsProps) {
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    if (!activeListId) return;
+    const btn = btnRefs.current.get(activeListId);
+    const container = tabsRef.current;
+    if (!btn || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+
+    setIndicatorStyle({
+      left: btnRect.left - containerRect.left + container.scrollLeft,
+      width: btnRect.width,
+    });
+  }, [activeListId, lists]);
+
+  const getBtnRef = (id: string, el: HTMLButtonElement | null) => {
+    if (el) {
+      btnRefs.current.set(id, el);
+    } else {
+      btnRefs.current.delete(id);
+    }
+  };
+
   return (
-    <div className="flex items-center gap-1 px-4 py-3 overflow-x-auto scrollbar-none">
+    <div ref={tabsRef} className="relative flex items-center gap-1 px-4 py-3 overflow-x-auto scrollbar-none">
       {lists.map((list) => (
         <button
           key={list.id}
+          ref={(el) => getBtnRef(list.id, el)}
           onClick={() => onSelect(list.id)}
-          className={`flex-shrink-0 h-9 px-4 rounded-full text-sm font-medium whitespace-nowrap ${
+          className={`relative z-10 flex-shrink-0 h-9 px-4 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-200 ${
             activeListId === list.id
-              ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
-              : 'bg-[var(--color-surface-soft)] text-[var(--color-body)] hover:bg-[var(--color-hairline)]'
+              ? 'text-[var(--color-on-primary)]'
+              : 'text-[var(--color-body)] hover:bg-[var(--color-hairline)]'
           }`}
         >
           {list.name}
@@ -26,11 +55,18 @@ export function TaskListTabs({ lists, activeListId, onSelect, onNewList }: TaskL
       ))}
       <button
         onClick={onNewList}
-        className="flex-shrink-0 w-9 h-9 rounded-full bg-[var(--color-surface-soft)] text-[var(--color-muted)] flex items-center justify-center hover:bg-[var(--color-hairline)]"
+        className="relative z-10 flex-shrink-0 w-9 h-9 rounded-full text-[var(--color-muted)] flex items-center justify-center hover:bg-[var(--color-hairline)]"
         aria-label="New list"
       >
         <GoPlus className="w-4 h-4" />
       </button>
+      <div
+        className="absolute bottom-3 h-9 rounded-full bg-[var(--color-primary)] transition-all duration-250 ease-out pointer-events-none"
+        style={{
+          left: indicatorStyle.left,
+          width: indicatorStyle.width,
+        }}
+      />
     </div>
   );
 }

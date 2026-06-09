@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { GoKebabHorizontal } from 'react-icons/go';
 import type { Task, TaskList } from '../../types/task';
 import { TaskListTabs } from './TaskListTabs';
@@ -34,6 +34,9 @@ export function TasksShell({
   onRenameList,
   onDeleteList,
 }: TasksShellProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const animatingRef = useRef(false);
   const [showMenu, setShowMenu] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -42,6 +45,50 @@ export function TasksShell({
   const activeList = lists.find((l) => l.id === activeListId);
   const listTasks = tasks.filter((t) => t.listId === activeListId);
   const listTaskCount = tasks.filter((t) => t.listId === activeListId).length;
+
+  const scrollToTab = useCallback((listId: string) => {
+    const targetIdx = lists.findIndex((l) => l.id === listId);
+    if (targetIdx < 0 || !scrollRef.current || lists.length <= 1) return;
+    const currentIdx = Math.round(scrollRef.current.scrollLeft / scrollRef.current.clientWidth);
+    if (targetIdx === currentIdx) return;
+
+    onSelectList(listId);
+    animatingRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollRef.current.scrollTo({ left: targetIdx * scrollRef.current.clientWidth, behavior: 'smooth' });
+    scrollTimeoutRef.current = setTimeout(() => {
+      animatingRef.current = false;
+    }, 400);
+  }, [lists, onSelectList]);
+
+  useEffect(() => {
+    if (animatingRef.current || !scrollRef.current || lists.length <= 1 || !activeListId) return;
+    const idx = lists.findIndex((l) => l.id === activeListId);
+    if (idx < 0) return;
+    const targetX = idx * scrollRef.current.clientWidth;
+    if (Math.abs(scrollRef.current.scrollLeft - targetX) > 5) {
+      scrollRef.current.scrollTo({ left: targetX, behavior: 'smooth' });
+    }
+  }, [activeListId, lists]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (animatingRef.current || !scrollRef.current || lists.length <= 1) return;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (!scrollRef.current) return;
+      const idx = Math.round(scrollRef.current.scrollLeft / scrollRef.current.clientWidth);
+      const list = lists[idx];
+      if (list && list.id !== activeListId) {
+        onSelectList(list.id);
+      }
+    }, 80);
+  }, [lists, activeListId, onSelectList]);
 
   const handleStartRename = () => {
     if (!activeList) return;
@@ -67,7 +114,7 @@ export function TasksShell({
       <TaskListTabs
         lists={lists}
         activeListId={activeListId}
-        onSelect={onSelectList}
+        onSelect={lists.length > 1 ? scrollToTab : onSelectList}
         onNewList={onNewList}
       />
 
@@ -120,14 +167,38 @@ export function TasksShell({
         </div>
       </div>
 
-      <TaskListView
-        tasks={listTasks}
-        onToggleComplete={onToggleComplete}
-        onToggleStar={onToggleStar}
-        onToggleSubtask={onToggleSubtask}
-        onOpenDetail={onOpenDetail}
-        onAddTask={onAddTask}
-      />
+      {lists.length > 1 ? (
+        <div
+          ref={scrollRef}
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none"
+          onScroll={handleScroll}
+        >
+          {lists.map((list) => {
+            const panelTasks = tasks.filter((t) => t.listId === list.id);
+            return (
+              <div key={list.id} className="w-screen flex-shrink-0 snap-start min-h-[50vh]">
+                <TaskListView
+                  tasks={panelTasks}
+                  onToggleComplete={onToggleComplete}
+                  onToggleStar={onToggleStar}
+                  onToggleSubtask={onToggleSubtask}
+                  onOpenDetail={onOpenDetail}
+                  onAddTask={list.id === activeListId ? onAddTask : undefined}
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <TaskListView
+          tasks={listTasks}
+          onToggleComplete={onToggleComplete}
+          onToggleStar={onToggleStar}
+          onToggleSubtask={onToggleSubtask}
+          onOpenDetail={onOpenDetail}
+          onAddTask={onAddTask}
+        />
+      )}
 
       {activeList && (
         <ConfirmDialog

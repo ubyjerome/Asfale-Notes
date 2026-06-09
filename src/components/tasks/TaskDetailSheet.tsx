@@ -178,7 +178,11 @@ export function TaskDetailSheet({ task, lists, onUpdate, onClose }: TaskDetailSh
             type="text"
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
-            className="w-full text-lg font-medium text-[var(--color-ink)] bg-transparent outline-none placeholder:text-[var(--color-muted)]"
+            className={`w-full text-lg font-medium bg-transparent outline-none placeholder:text-[var(--color-muted)] ${
+              task.isCompleted
+                ? 'text-[var(--color-muted)] line-through'
+                : 'text-[var(--color-ink)]'
+            }`}
             placeholder="Task title"
           />
 
@@ -240,13 +244,15 @@ export function TaskDetailSheet({ task, lists, onUpdate, onClose }: TaskDetailSh
         </div>
 
         <div className="px-4 pb-6">
-          <button
-            onClick={handleMarkCompleted}
-            className="w-full h-12 rounded-full border border-[var(--color-hairline)] flex items-center justify-center gap-2 text-sm font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-          >
-            <GoCheck className="w-4 h-4" />
-            Mark completed
-          </button>
+          {!task.isCompleted && (
+            <button
+              onClick={handleMarkCompleted}
+              className="w-full h-12 rounded-full border border-[var(--color-hairline)] flex items-center justify-center gap-2 text-sm font-medium text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+            >
+              <GoCheck className="w-4 h-4" />
+              Mark completed
+            </button>
+          )}
         </div>
       </div>
     </div>
